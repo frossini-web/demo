@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNAM – Supplier Performance Orchestration</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fff;color:#1a1a1a}
+.root{display:flex;height:100vh;width:100vw;overflow:hidden}
+
+/* LEFT PANEL */
+.sidebar{width:200px;background:#fff;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;flex-shrink:0}
+.sb-hd{padding:16px 14px 12px;border-bottom:1px solid #e5e7eb}
+.sb-logo{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sb-logo-mark{width:22px;height:22px;display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.sb-logo-mark span{background:#1a1a1a;border-radius:2px;display:block}
+.sb-logo-mark span:nth-child(3){background:#1a1a1a;opacity:.4}
+.sb-logo-mark span:nth-child(4){background:#1a1a1a;opacity:.2}
+.sb-logo-text{font-size:13px;font-weight:700;color:#1a1a1a;letter-spacing:-.01em}
+.sb-title{font-size:11px;color:#6b7280;line-height:1.4}
+.sb-section{padding:10px 14px 4px;font-size:10px;font-weight:600;color:#9ca3af;letter-spacing:.06em;text-transform:uppercase}
+.sb-item{display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:default;border-radius:0}
+.sb-item:hover{background:#f9fafb}
+.sb-icon{width:26px;height:26px;border-radius:6px;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;background:#fff}
+.sb-label{font-size:11px;color:#374151}
+.sb-footer{margin-top:auto;padding:12px 14px;border-top:1px solid #e5e7eb}
+.sb-footer-label{font-size:10px;color:#9ca3af;margin-bottom:7px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.sb-metrics{display:flex;gap:6px}
+.sb-metric{flex:1;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:6px 8px}
+.sb-metric-val{font-size:15px;font-weight:700;color:#111827}
+.sb-metric-lbl{font-size:9px;color:#9ca3af;margin-top:1px}
+
+/* CANVAS */
+.canvas-wrap{flex:1;position:relative;overflow:hidden;background:#fafafa;background-image:radial-gradient(circle,#d1d5db 1px,transparent 1px);background-size:24px 24px}
+.toolbar{position:absolute;top:12px;right:12px;display:flex;gap:5px;z-index:10}
+.tbtn{background:#fff;border:1px solid #e5e7eb;color:#374151;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:background .12s;font-family:inherit;font-weight:500}
+.tbtn:hover{background:#f9fafb}
+.tbtn.primary{background:#1a1a1a;border-color:#1a1a1a;color:#fff}
+.tbtn.primary:hover{background:#333}
+.tbtn.success{background:#059669;border-color:#059669;color:#fff}
+.status-bar{position:absolute;bottom:12px;left:12px;font-size:11px;color:#9ca3af;display:flex;align-items:center;gap:6px}
+.status-dot{width:6px;height:6px;border-radius:50%;background:#10b981}
+#svg-canvas{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible}
+
+/* DETAIL PANEL */
+.detail{position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e7eb;padding:12px 16px;display:none;z-index:20;align-items:center;gap:12px}
+.detail.open{display:flex}
+.detail-icon{width:36px;height:36px;border-radius:8px;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;background:#fff}
+.detail-body{flex:1}
+.detail-title{font-size:12px;font-weight:700;color:#111827}
+.detail-desc{font-size:11px;color:#6b7280;margin-top:2px;line-height:1.5}
+.detail-badges{display:flex;gap:5px;margin-top:5px}
+.d-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px}
+.d-badge.agent{background:#eff6ff;color:#1d4ed8}
+.d-badge.auto{background:#f0fdf4;color:#166534}
+.d-badge.gateway{background:#f9fafb;color:#6b7280;border:1px solid #e5e7eb}
+.d-badge.usertask{background:#fef3c7;color:#92400e}
+.detail-close{cursor:pointer;color:#9ca3af;font-size:16px;padding:4px;line-height:1}
+.detail-close:hover{color:#374151}
+</style>
+</head>
+<body>
+<div class="root">
+
+<div class="sidebar">
+  <div class="sb-hd">
+    <div class="sb-logo">
+      <div class="sb-logo-mark"><span></span><span></span><span></span><span></span></div>
+      <div class="sb-logo-text">Celonis</div>
+    </div>
+    <div class="sb-title">Supplier Performance<br>Orchestration Engine</div>
+  </div>
+
+  <div class="sb-section">Triggers</div>
+  <div class="sb-item"><div class="sb-icon" style="color:#6b7280">⚡</div><div class="sb-label">Performance alert</div></div>
+
+  <div class="sb-section">Agents</div>
+  <div class="sb-item"><div class="sb-icon" style="font-size:9px;font-weight:800;color:#1a1a1a">C</div><div class="sb-label">Scoring agent</div></div>
+  <div class="sb-item"><div class="sb-icon" style="font-size:9px;font-weight:800;color:#1057a0">T</div><div class="sb-label">Teams notify</div></div>
+  <div class="sb-item"><div class="sb-icon" style="font-size:9px;font-weight:800;color:#1a1a1a">C</div><div class="sb-label">Bidding list</div></div>
+  <div class="sb-item">
+    <div class="sb-icon" style="padding:0;overflow:hidden;border-color:#1057a0">
+      <svg viewBox="0 0 64 64" width="26" height="26" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sg" x1="42" y1="18" x2="42" y2="61" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00b8f1"/><stop offset=".22" stop-color="#06a5e5"/><stop offset=".79" stop-color="#1870c5"/><stop offset="1" stop-color="#1d61bc"/></linearGradient></defs><path d="M0 18V60h43L84 18H0z" fill="url(#sg)" transform="scale(.762)"/><path d="M39 31h-1.4v-4.9h1.4c1.8 0 3.2.6 3.2 2.4 0 1.9-1.4 2.5-3.2 2.5m-14.5 3.5c-.7 0-1.3-.1-2-.3l1.9-6.1h.1l1.9 6.1c-.6.2-1.3.3-1.9.3m14.2-12.5h-5.1v14.6l-5.4-14.6h-5.2l-4.6 12.2c-.5-3.1-3.7-4.1-6.2-4.9-1.6-.5-3.4-1.3-3.4-2.2 0-.7.9-1.4 2.8-1.3 1.2.1 2.3.2 4.5 1.2l2.1-3.7c-2-1-4.7-1.6-6.9-1.6h-.1c-2.6 0-4.8.9-6.1 2.2-.9 1-1.5 2.2-1.5 3.6 0 1.9.7 3.2 2.1 4.3 1.2.9 2.8 1.5 4.2 1.9 1.7.5 3.1 1 3.1 2a1.4 1.4 0 0 1-.4 1c-.4.4-1.1.6-2 .6-1.7 0-3-.2-5.1-1.4l-2.1 3.7c2.1 1.2 4.5 1.8 6.9 1.8h.3c2.2 0 3.9-.7 5.3-1.8l-.6 1.6h5.6l.9-2.8c2.1.7 4.4.7 6.5 0l.9 2.8h9.1v-5.9h2c4.8 0 7.6-2.4 7.6-6.5 0-4.6-2.8-6.6-8.6-6.6" fill="#fff"/></svg>
+    </div>
+    <div class="sb-label">SAP write-back</div>
+  </div>
+
+  <div class="sb-section">Logic</div>
+  <div class="sb-item"><div class="sb-icon" style="color:#6b7280;font-size:14px">◇</div><div class="sb-label">Gateway</div></div>
+  <div class="sb-item"><div class="sb-icon" style="color:#6b7280">●</div><div class="sb-label">End event</div></div>
+
+  <div class="sb-footer">
+    <div class="sb-footer-label">Today</div>
+    <div class="sb-metrics">
+      <div class="sb-metric"><div class="sb-metric-val">3</div><div class="sb-metric-lbl">Runs</div></div>
+      <div class="sb-metric"><div class="sb-metric-val" style="color:#059669">71%</div><div class="sb-metric-lbl">Auto</div></div>
+      <div class="sb-metric"><div class="sb-metric-val" style="color:#1d4ed8">2.3h</div><div class="sb-metric-lbl">Avg</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="canvas-wrap" id="canvas-wrap">
+  <div class="toolbar">
+    <button class="tbtn" onclick="doZoom(-0.1)">－</button>
+    <button class="tbtn" id="zoom-lbl">85%</button>
+    <button class="tbtn" onclick="doZoom(0.1)">＋</button>
+    <button class="tbtn" onclick="doFit()">Fit</button>
+    <button class="tbtn primary" id="deploy-btn" onclick="doDeploy()">▶&nbsp;&nbsp;Deploy agent</button>
+  </div>
+
+  <svg id="svg-canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+
+  <div class="status-bar"><div class="status-dot"></div>Active · click any node to inspect</div>
+
+  <div class="detail" id="detail">
+    <div class="detail-icon" id="d-icon"></div>
+    <div class="detail-body">
+      <div class="detail-title" id="d-title"></div>
+      <div class="detail-desc" id="d-desc"></div>
+      <div class="detail-badges" id="d-badges"></div>
+    </div>
+    <div class="detail-close" onclick="closeDetail()">✕</div>
+  </div>
+</div>
+
+<script>
+var NODES = [
+  {id:'start',   x:322, y:40,  w:36, h:36, type:'start',
+   label:'Supplier performance alert',
+   desc:'Triggered automatically when a supplier composite score drops below threshold (60/100) for 3 consecutive evaluation periods.'},
+
+  {id:'scoring', x:262, y:120, w:156, h:62, type:'agent',
+   label:'Supplier scoring agent', sub:'Calculates score vs threshold',
+   badge:'agent',
+   desc:'Evaluates OTIF, quality (NC rate), SLA response time, and price adherence. Benchmarks against industry targets and internal thresholds. Celonis AI Agent.'},
+
+  {id:'gw1',    x:316, y:224, w:48, h:48, type:'gateway',
+   label:'Score threshold?',
+   desc:'Routes flow based on calculated score. Score ≥ 60 → no action taken. Score < 60 → buyer notification triggered automatically.'},
+
+  {id:'noact1', x:130, y:212, w:120, h:62, type:'task',
+   label:'No action', sub:'Score within limits',
+   badge:'auto',
+   desc:'Score is within acceptable range. Flow closes. Result logged to audit trail. Supplier remains on approved vendor list with no changes.'},
+
+  {id:'end1',   x:177, y:318, w:32, h:32, type:'end',
+   label:'No action taken',
+   desc:'End event: supplier score OK. No changes to vendor assignment required.'},
+
+  {id:'notify', x:262, y:316, w:156, h:62, type:'usertask',
+   label:'Notify buyer in Teams', sub:'Scorecard + suggested alternatives',
+   badge:'agent',
+   desc:'Sends a proactive adaptive card to the assigned buyer in Microsoft Teams. Includes full scorecard KPI breakdown and ranked list of pre-qualified alternative suppliers for the same commodity code.'},
+
+  {id:'gw2',    x:316, y:424, w:48, h:48, type:'gateway',
+   label:'Buyer decision?',
+   desc:'Buyer can accept recommended alternatives (proceeds to bidding list) or decline (case closed with audit log entry and timestamp).'},
+
+  {id:'noact2', x:130, y:412, w:120, h:62, type:'task',
+   label:'No action', sub:'Buyer declined',
+   badge:null,
+   desc:'Buyer chose to keep current supplier or escalate manually. Decision logged with timestamp, approver identity, and rationale.'},
+
+  {id:'end2',   x:177, y:518, w:32, h:32, type:'end',
+   label:'No action taken',
+   desc:'End event: buyer declined alternative suppliers. Manual follow-up may be scheduled by procurement manager.'},
+
+  {id:'bidding',x:262, y:518, w:156, h:62, type:'agent',
+   label:'Trigger bidding list', sub:'Pre-qualified suppliers, same commodity',
+   badge:'agent',
+   desc:'Generates pre-populated bidding list with all qualified suppliers for commodity 4520-VLV, ranked by composite score. Exportable to Excel or viewable in Celonis Supplier Performance App.'},
+
+  {id:'sap',    x:262, y:626, w:156, h:62, type:'sap',
+   label:'Update SAP', sub:'New vendor assigned, audit trail logged',
+   badge:'auto',
+   desc:'Automatically creates vendor change request in SAP MM, updates the approved vendor list for the commodity, and logs the full decision chain with rationale, approver, and timestamp.'},
+
+  {id:'end3',   x:322, y:734, w:36, h:36, type:'end',
+   label:'Process complete',
+   desc:'Orchestration complete. SAP updated. Buyer notified via Teams confirmation. All changes logged with full audit trail.'},
+];
+
+var EDGES = [
+  {from:'start',   to:'scoring',  label:'',                color:'#9ca3af'},
+  {from:'scoring', to:'gw1',      label:'',                color:'#9ca3af'},
+  {from:'gw1',     to:'noact1',   label:'Score OK',        color:'#059669', side:'left'},
+  {from:'gw1',     to:'notify',   label:'Below threshold', color:'#dc2626', side:'bottom'},
+  {from:'noact1',  to:'end1',     label:'',                color:'#9ca3af'},
+  {from:'notify',  to:'gw2',      label:'',                color:'#9ca3af'},
+  {from:'gw2',     to:'noact2',   label:'Buyer declines',  color:'#dc2626', side:'left'},
+  {from:'gw2',     to:'bidding',  label:'Buyer accepts',   color:'#059669', side:'bottom'},
+  {from:'noact2',  to:'end2',     label:'',                color:'#9ca3af'},
+  {from:'bidding', to:'sap',      label:'',                color:'#9ca3af'},
+  {from:'sap',     to:'end3',     label:'',                color:'#9ca3af'},
+];
+
+var zoom = 0.85, selected = null;
+var svg = document.getElementById('svg-canvas');
+
+function getNode(id){ return NODES.find(function(n){return n.id===id}); }
+
+function port(n, side){
+  var cx=n.x+n.w/2, cy=n.y+n.h/2;
+  if(n.type==='start'||n.type==='end') return {x:cx, y:side==='top'?n.y:n.y+n.h};
+  if(n.type==='gateway'){
+    if(side==='left')   return {x:n.x,       y:cy};
+    if(side==='right')  return {x:n.x+n.w,   y:cy};
+    if(side==='top')    return {x:cx,         y:n.y};
+    return {x:cx, y:n.y+n.h};
+  }
+  if(side==='left')  return {x:n.x,     y:cy};
+  if(side==='right') return {x:n.x+n.w, y:cy};
+  if(side==='top')   return {x:cx,      y:n.y};
+  return {x:cx, y:n.y+n.h};
+}
+
+function el(tag,attrs,txt){
+  var e=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  Object.keys(attrs).forEach(function(k){e.setAttribute(k,attrs[k])});
+  if(txt!==undefined) e.textContent=txt;
+  return e;
+}
+
+function render(){
+  svg.innerHTML='';
+  var defs=el('defs',{});
+  ['gray','green','red'].forEach(function(t){
+    var c=t==='green'?'#059669':t==='red'?'#dc2626':'#9ca3af';
+    var m=el('marker',{id:'m-'+t,viewBox:'0 0 10 10',refX:'9',refY:'5',markerWidth:'6',markerHeight:'6',orient:'auto-start-reverse'});
+    m.appendChild(el('path',{d:'M1 1L9 5L1 9',fill:'none',stroke:c,'stroke-width':'1.5','stroke-linecap':'round','stroke-linejoin':'round'}));
+    defs.appendChild(m);
+  });
+  svg.appendChild(defs);
+
+  var g=el('g',{transform:'scale('+zoom+')'});
+
+  // edges
+  EDGES.forEach(function(e){
+    var fn=getNode(e.from), tn=getNode(e.to);
+    if(!fn||!tn) return;
+    var col=e.color||'#9ca3af';
+    var mid=col==='#059669'?'m-green':col==='#dc2626'?'m-red':'m-gray';
+
+    var fp, tp;
+    if(e.side==='left'){
+      fp=port(fn,'left'); tp=port(tn,'right');
+    } else {
+      fp=port(fn,'bottom'); tp=port(tn,'top');
+    }
+
+    var d;
+    if(e.side==='left'){
+      var midX=(fp.x+tp.x)/2;
+      d='M'+fp.x+' '+fp.y+' L'+midX+' '+fp.y+' L'+midX+' '+tp.y+' L'+tp.x+' '+tp.y;
+    } else {
+      var my=(fp.y+tp.y)/2;
+      d='M'+fp.x+' '+fp.y+' C'+fp.x+' '+my+' '+tp.x+' '+my+' '+tp.x+' '+tp.y;
+    }
+
+    g.appendChild(el('path',{d:d,fill:'none',stroke:col,'stroke-width':'1.2','marker-end':'url(#'+mid+')'}));
+
+    if(e.label){
+      var lx=e.side==='left'?(fp.x+tp.x)/2+4:(fp.x+tp.x)/2+5;
+      var ly=e.side==='left'?fp.y-5:(fp.y+tp.y)/2-5;
+      var bg=el('rect',{x:lx-2,y:ly-10,width:e.label.length*5.8+6,height:13,rx:'3',fill:'#fff','stroke':col,'stroke-width':'.5'});
+      var lt=el('text',{x:lx,y:ly,fill:col,'font-size':'9','font-weight':'700','font-family':'-apple-system,sans-serif'});
+      lt.textContent=e.label;
+      g.appendChild(bg); g.appendChild(lt);
+    }
+  });
+
+  // nodes
+  NODES.forEach(function(n){
+    var ng=el('g',{cursor:'pointer'});
+    ng.addEventListener('click',function(ev){ev.stopPropagation();selectNode(n)});
+    var isSel=selected===n.id;
+    var stroke=isSel?'#1a56db':'#e5e7eb';
+    var sw=isSel?'1.5':'1';
+
+    if(n.type==='start'){
+      ng.appendChild(el('circle',{cx:n.x+n.w/2,cy:n.y+n.h/2,r:n.w/2,fill:'#f9fafb',stroke:stroke,'stroke-width':sw}));
+      // radio waves icon
+      var cx=n.x+n.w/2, cy2=n.y+n.h/2;
+      ng.appendChild(el('circle',{cx:cx,cy:cy2,r:'4',fill:'none',stroke:'#6b7280','stroke-width':'1.5'}));
+      ng.appendChild(el('circle',{cx:cx,cy:cy2,r:'8',fill:'none',stroke:'#9ca3af','stroke-width':'1','stroke-dasharray':'2 2'}));
+      ng.appendChild(el('circle',{cx:cx,cy:cy2,r:'2',fill:'#6b7280'}));
+      var lbl=el('text',{x:cx,y:n.y+n.h+14,fill:'#374151','font-size':'9.5','text-anchor':'middle','font-family':'-apple-system,sans-serif','font-weight':'500'});
+      lbl.textContent=n.label;
+      ng.appendChild(lbl);
+
+    } else if(n.type==='end'){
+      var cx2=n.x+n.w/2, cy3=n.y+n.h/2;
+      ng.appendChild(el('circle',{cx:cx2,cy:cy3,r:n.w/2,fill:'#f9fafb',stroke:'#374151','stroke-width':'2'}));
+      ng.appendChild(el('circle',{cx:cx2,cy:cy3,r:n.w/2-5,fill:'#374151'}));
+      var lbl2=el('text',{x:cx2,y:n.y+n.h+13,fill:'#6b7280','font-size':'9','text-anchor':'middle','font-family':'-apple-system,sans-serif'});
+      lbl2.textContent=n.label;
+      ng.appendChild(lbl2);
+
+    } else if(n.type==='gateway'){
+      var cx3=n.x+n.w/2, cy4=n.y+n.h/2;
+      var pts=cx3+','+(n.y)+' '+(n.x+n.w)+','+cy4+' '+cx3+','+(n.y+n.h)+' '+n.x+','+cy4;
+      ng.appendChild(el('polygon',{points:pts,fill:'#fff',stroke:stroke,'stroke-width':sw}));
+      // X mark inside diamond
+      ng.appendChild(el('line',{x1:cx3-5,y1:cy4-5,x2:cx3+5,y2:cy4+5,stroke:'#6b7280','stroke-width':'1.5','stroke-linecap':'round'}));
+      ng.appendChild(el('line',{x1:cx3+5,y1:cy4-5,x2:cx3-5,y2:cy4+5,stroke:'#6b7280','stroke-width':'1.5','stroke-linecap':'round'}));
+      var lbl3=el('text',{x:cx3,y:n.y+n.h+14,fill:'#6b7280','font-size':'9.5','text-anchor':'middle','font-weight':'600','font-family':'-apple-system,sans-serif'});
+      lbl3.textContent=n.label;
+      ng.appendChild(lbl3);
+
+    } else {
+      // task card
+      ng.appendChild(el('rect',{x:n.x,y:n.y,width:n.w,height:n.h,rx:'8',fill:'#fff',stroke:stroke,'stroke-width':sw}));
+
+      // icon box 28x28
+      var iconX=n.x+10, iconY=n.y+n.h/2-14;
+      ng.appendChild(el('rect',{x:iconX,y:iconY,width:28,height:28,rx:'6',fill:'#f3f4f6',stroke:'#e5e7eb','stroke-width':'.8'}));
+
+      if(n.type==='sap'){
+        // SAP icon (blue gradient box)
+        ng.appendChild(el('rect',{x:iconX,y:iconY,width:28,height:28,rx:'6',fill:'#1870c5'}));
+        var st=el('text',{x:iconX+14,y:iconY+17,fill:'#fff','font-size':'9','font-weight':'900','text-anchor':'middle','font-family':'-apple-system,sans-serif'});
+        st.textContent='SAP';
+        ng.appendChild(st);
+      } else {
+        // Celonis icon = 2x2 grid of squares
+        var gs=4, gx=iconX+6, gy=iconY+6;
+        ng.appendChild(el('rect',{x:gx,y:gy,width:gs,height:gs,rx:'1',fill:'#1a1a1a'}));
+        ng.appendChild(el('rect',{x:gx+gs+2,y:gy,width:gs,height:gs,rx:'1',fill:'#1a1a1a',opacity:'.6'}));
+        ng.appendChild(el('rect',{x:gx,y:gy+gs+2,width:gs,height:gs,rx:'1',fill:'#1a1a1a',opacity:'.4'}));
+        ng.appendChild(el('rect',{x:gx+gs+2,y:gy+gs+2,width:gs,height:gs,rx:'1',fill:'#1a1a1a',opacity:'.2'}));
+      }
+
+      if(n.type==='usertask'){
+        // Teams icon overlay
+        ng.appendChild(el('rect',{x:iconX,y:iconY,width:28,height:28,rx:'6',fill:'#1057a0'}));
+        var tt=el('text',{x:iconX+14,y:iconY+17,fill:'#fff','font-size':'10','font-weight':'900','text-anchor':'middle','font-family':'-apple-system,sans-serif'});
+        tt.textContent='T';
+        ng.appendChild(tt);
+      }
+
+      // label text
+      var labelY=n.sub?n.y+n.h/2-5:n.y+n.h/2+1;
+      var nl=el('text',{x:n.x+46,y:labelY,fill:'#111827','font-size':'10.5','font-weight':'600','font-family':'-apple-system,sans-serif','dominant-baseline':'central'});
+      nl.textContent=n.label;
+      ng.appendChild(nl);
+      if(n.sub){
+        var sl=el('text',{x:n.x+46,y:n.y+n.h/2+9,fill:'#9ca3af','font-size':'9','font-family':'-apple-system,sans-serif','dominant-baseline':'central'});
+        sl.textContent=n.sub;
+        ng.appendChild(sl);
+      }
+
+      // badge
+      if(n.badge){
+        var bc=n.badge==='agent'?'#eff6ff':'#f0fdf4';
+        var btc=n.badge==='agent'?'#1d4ed8':'#166534';
+        var btxt=n.badge==='agent'?'Agent':'Auto';
+        var bw=btxt.length*5.5+10;
+        ng.appendChild(el('rect',{x:n.x+n.w-bw-5,y:n.y+5,width:bw,height:14,rx:'7',fill:bc}));
+        var bt=el('text',{x:n.x+n.w-bw/2-5,y:n.y+12,fill:btc,'font-size':'8','font-weight':'700','text-anchor':'middle','dominant-baseline':'central','font-family':'-apple-system,sans-serif'});
+        bt.textContent=btxt;
+        ng.appendChild(bt);
+      }
+    }
+
+    // selection ring
+    if(isSel && n.type!=='start' && n.type!=='end'){
+      ng.insertBefore(el('rect',{x:n.x-4,y:n.y-4,width:n.w+8,height:n.h+8,rx:'11',fill:'none',stroke:'rgba(26,86,219,.2)','stroke-width':'6'}), ng.firstChild);
+    }
+
+    g.appendChild(ng);
+  });
+
+  svg.appendChild(g);
+}
+
+function selectNode(n){
+  selected=n.id; render();
+  document.getElementById('d-icon').textContent = n.type==='sap'?'S':n.type==='usertask'?'T':n.type==='gateway'?'◇':n.type==='start'||n.type==='end'?'●':'C';
+  document.getElementById('d-icon').style.background = n.type==='sap'?'#1870c5':n.type==='usertask'?'#1057a0':n.type==='gateway'?'#f9fafb':'#f3f4f6';
+  document.getElementById('d-icon').style.color = n.type==='sap'||n.type==='usertask'?'#fff':'#1a1a1a';
+  document.getElementById('d-title').textContent = n.label+(n.sub?' – '+n.sub:'');
+  document.getElementById('d-desc').textContent = n.desc||'';
+  var bd=document.getElementById('d-badges'); bd.innerHTML='';
+  if(n.badge){var b=document.createElement('span');b.className='d-badge '+n.badge;b.textContent=n.badge==='agent'?'AI Agent':'Automated';bd.appendChild(b);}
+  if(n.type==='usertask'){var b2=document.createElement('span');b2.className='d-badge usertask';b2.textContent='User task';bd.appendChild(b2);}
+  if(n.type==='gateway'){var b3=document.createElement('span');b3.className='d-badge gateway';b3.textContent='Exclusive gateway';bd.appendChild(b3);}
+  document.getElementById('detail').classList.add('open');
+}
+
+function closeDetail(){document.getElementById('detail').classList.remove('open');selected=null;render();}
+document.getElementById('svg-canvas').addEventListener('click',closeDetail);
+
+function doZoom(d){zoom=Math.min(2,Math.max(.3,zoom+d));document.getElementById('zoom-lbl').textContent=Math.round(zoom*100)+'%';render();}
+function doFit(){zoom=.85;document.getElementById('zoom-lbl').textContent='85%';render();}
+function doDeploy(){
+  var btn=document.getElementById('deploy-btn');
+  btn.textContent='✓  Deployed'; btn.className='tbtn success';
+  setTimeout(function(){btn.textContent='▶  Deploy agent';btn.className='tbtn primary';},2500);
+}
+
+render();
+</script>
+</body>
+</html>
