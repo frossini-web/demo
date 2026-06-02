@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNAM – Supplier Performance Orchestration</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f5f7;color:#1a1a2e;overflow:hidden}
+
+.wrap{display:flex;height:100vh;flex-direction:column;align-items:center;overflow-y:auto;overflow-x:hidden;padding:40px 20px 60px}
+
+.toolbar{position:fixed;top:14px;right:14px;display:flex;gap:6px;z-index:100}
+.tbtn{background:#fff;border:1px solid #e0e0e0;color:#374151;border-radius:6px;padding:5px 11px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:500;transition:background .12s}
+.tbtn:hover{background:#f3f4f6}
+.tbtn.primary{background:#1a1a2e;border-color:#1a1a2e;color:#fff}
+.tbtn.primary:hover{background:#2d2d44}
+.tbtn.ok{background:#059669;border-color:#059669;color:#fff}
+
+/* ── FLOW ── */
+.flow{display:flex;flex-direction:column;align-items:center;gap:0;width:100%;max-width:560px}
+
+/* connector line */
+.conn{width:1px;height:40px;background:#c8cad0;flex-shrink:0}
+.conn-short{width:1px;height:28px;background:#c8cad0;flex-shrink:0}
+
+/* trigger / wait / end circles */
+.circle-node{width:72px;height:72px;border-radius:50%;background:#fff;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.circle-node.end-circle{border-width:2.5px;border-color:#1a1a2e}
+.circle-node.end-filled{background:#1a1a2e}
+.node-label{font-size:13px;font-weight:600;color:#1a1a2e;text-align:center;margin-top:10px;line-height:1.4;max-width:200px}
+.node-sub{font-size:11px;color:#6b7280;text-align:center;margin-top:2px;max-width:200px}
+
+/* task card */
+.card{background:#fff;border:1px solid #e0e0e0;border-radius:16px;padding:14px 18px;display:flex;align-items:center;gap:12px;min-width:220px;max-width:300px;cursor:pointer;transition:box-shadow .15s,border-color .15s}
+.card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08);border-color:#c5cbdc}
+.card.selected{border-color:#1a56db;box-shadow:0 0 0 3px rgba(26,86,219,.12)}
+.card-icons{display:flex;align-items:center;gap:-4px;flex-shrink:0}
+.app-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:2px solid #fff}
+.app-icon.celonis{background:#1a1a2e}
+.app-icon.sap{background:#1870c5}
+.app-icon.teams{background:#1057a0}
+.app-icon.gray{background:#f3f4f6;border-color:#e0e0e0}
+.card-text{}
+.card-label{font-size:12px;font-weight:700;color:#1a1a2e;line-height:1.3}
+.card-sub{font-size:10px;color:#9ca3af;margin-top:2px;line-height:1.3}
+.card-badge{margin-left:auto;font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;flex-shrink:0}
+.badge-agent{background:#eff6ff;color:#1d4ed8}
+.badge-auto{background:#f0fdf4;color:#166534}
+
+/* gateway */
+.gateway-wrap{display:flex;flex-direction:column;align-items:center}
+.diamond{width:58px;height:58px;background:#fff;border:1px solid #c8cad0;transform:rotate(45deg);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.diamond-inner{transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;color:#6b7280}
+.gw-label{font-size:11px;font-weight:600;color:#6b7280;margin-top:10px;text-align:center;letter-spacing:.01em}
+
+/* branch row */
+.branch-row{display:flex;align-items:flex-start;justify-content:center;width:100%;gap:0}
+.branch{display:flex;flex-direction:column;align-items:center;flex:1}
+.branch-label{font-size:11px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:4px}
+.branch-label.ok{color:#059669}
+.branch-label.bad{color:#dc2626}
+.h-line{height:1px;background:#c8cad0;width:100%}
+.v-line{width:1px;height:28px;background:#c8cad0}
+
+/* detail bottom bar */
+.detail-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e0e0;padding:12px 20px;display:none;align-items:center;gap:12px;z-index:100}
+.detail-bar.open{display:flex}
+.detail-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}
+.detail-title{font-size:12px;font-weight:700;color:#111827}
+.detail-desc{font-size:11px;color:#6b7280;margin-top:2px;line-height:1.5}
+.detail-close{cursor:pointer;color:#9ca3af;font-size:18px;padding:4px;margin-left:auto}
+.detail-close:hover{color:#374151}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="tbtn" onclick="doZoom(-.1)">－</button>
+  <button class="tbtn" id="zlbl">100%</button>
+  <button class="tbtn" onclick="doZoom(.1)">＋</button>
+  <button class="tbtn primary" id="dbtn" onclick="doDeploy()">▶&nbsp; Deploy agent</button>
+</div>
+
+<div class="wrap" id="wrap">
+<div class="flow" id="flow">
+
+  <!-- START -->
+  <div style="display:flex;flex-direction:column;align-items:center">
+    <div class="circle-node" onclick="showDetail('start')">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linecap="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M6.3 6.3a8 8 0 0 0 0 11.4M17.7 6.3a8 8 0 0 1 0 11.4"/>
+        <path d="M3.5 3.5a16 16 0 0 0 0 17M20.5 3.5a16 16 0 0 1 0 17" opacity=".4"/>
+      </svg>
+    </div>
+    <div class="node-label">Supplier performance alert</div>
+  </div>
+
+  <div class="conn"></div>
+
+  <!-- SCORING AGENT -->
+  <div class="card" id="n-scoring" onclick="showDetail('scoring')">
+    <div class="card-icons">
+      <div class="app-icon celonis">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="white"/><rect x="9" y="1" width="6" height="6" rx="1" fill="white" opacity=".6"/><rect x="1" y="9" width="6" height="6" rx="1" fill="white" opacity=".4"/><rect x="9" y="9" width="6" height="6" rx="1" fill="white" opacity=".2"/></svg>
+      </div>
+    </div>
+    <div class="card-text">
+      <div class="card-label">Supplier scoring agent</div>
+      <div class="card-sub">Calculates score vs threshold</div>
+    </div>
+    <span class="card-badge badge-agent">Agent</span>
+  </div>
+
+  <div class="conn"></div>
+
+  <!-- GATEWAY 1 -->
+  <div class="gateway-wrap">
+    <div class="diamond" onclick="showDetail('gw1')">
+      <div class="diamond-inner">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.8" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </div>
+    </div>
+    <div class="gw-label">Score threshold?</div>
+  </div>
+
+  <!-- BRANCH ARMS from GW1 -->
+  <div style="display:flex;width:100%;align-items:flex-start">
+    <!-- left arm -->
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+      <div style="width:100%;height:1px;background:#c8cad0;margin-top:0"></div>
+      <div class="v-line"></div>
+      <div class="branch-label ok">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M7 12l4 4 6-7"/></svg>
+        Score OK
+      </div>
+      <div class="card" id="n-noact1" onclick="showDetail('noact1')" style="max-width:180px">
+        <div class="card-icons">
+          <div class="app-icon gray">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+        </div>
+        <div class="card-text"><div class="card-label">No action</div></div>
+        <span class="card-badge badge-auto">Auto</span>
+      </div>
+    </div>
+    <!-- center spacer holding the line -->
+    <div style="width:1px;background:#c8cad0;align-self:stretch;margin:0"></div>
+    <!-- right arm -->
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+      <div style="width:100%;height:1px;background:#c8cad0"></div>
+      <div class="v-line"></div>
+      <div class="branch-label bad">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+        Below threshold
+      </div>
+      <div class="card" id="n-notify" onclick="showDetail('notify')" style="max-width:200px">
+        <div class="card-icons" style="position:relative;width:52px;flex-shrink:0">
+          <div class="app-icon celonis" style="position:absolute;left:0;z-index:1">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="white"/><rect x="9" y="1" width="6" height="6" rx="1" fill="white" opacity=".6"/><rect x="1" y="9" width="6" height="6" rx="1" fill="white" opacity=".4"/><rect x="9" y="9" width="6" height="6" rx="1" fill="white" opacity=".2"/></svg>
+          </div>
+          <div class="app-icon teams" style="position:absolute;left:18px;z-index:2;width:34px;height:34px;border-radius:8px;font-size:11px">T</div>
+        </div>
+        <div class="card-text" style="margin-left:10px">
+          <div class="card-label">Notify buyer</div>
+          <div class="card-sub">Teams message</div>
+        </div>
+        <span class="card-badge badge-agent">Agent</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- reconnect right branch back to center -->
+  <div style="display:flex;width:100%;align-items:flex-start">
+    <div style="flex:1"></div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+      <div class="conn-short"></div>
+    </div>
+  </div>
+
+  <!-- GATEWAY 2 (right-side only) -->
+  <div style="display:flex;width:100%;justify-content:flex-end;padding-right:calc(25% - 29px)">
+    <div class="gateway-wrap">
+      <div class="diamond" onclick="showDetail('gw2')">
+        <div class="diamond-inner">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.8" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </div>
+      </div>
+      <div class="gw-label">Buyer decision?</div>
+    </div>
+  </div>
+
+  <!-- BRANCH ARMS from GW2 -->
+  <div style="display:flex;width:100%;align-items:flex-start">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+      <div style="width:100%;height:1px;background:#c8cad0"></div>
+      <div class="v-line"></div>
+      <div class="branch-label bad">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+        Declines
+      </div>
+      <div class="card" id="n-noact2" onclick="showDetail('noact2')" style="max-width:180px">
+        <div class="card-icons">
+          <div class="app-icon gray">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </div>
+        </div>
+        <div class="card-text"><div class="card-label">No action</div></div>
+      </div>
+    </div>
+    <div style="width:1px;background:#c8cad0;align-self:stretch"></div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+      <div style="width:100%;height:1px;background:#c8cad0"></div>
+      <div class="v-line"></div>
+      <div class="branch-label ok">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M7 12l4 4 6-7"/></svg>
+        Accepts
+      </div>
+      <div class="card" id="n-bidding" onclick="showDetail('bidding')" style="max-width:200px">
+        <div class="card-icons">
+          <div class="app-icon celonis">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="white"/><rect x="9" y="1" width="6" height="6" rx="1" fill="white" opacity=".6"/><rect x="1" y="9" width="6" height="6" rx="1" fill="white" opacity=".4"/><rect x="9" y="9" width="6" height="6" rx="1" fill="white" opacity=".2"/></svg>
+          </div>
+        </div>
+        <div class="card-text">
+          <div class="card-label">Bidding list</div>
+          <div class="card-sub">Same commodity</div>
+        </div>
+        <span class="card-badge badge-agent">Agent</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- merge right branch back to center -->
+  <div style="display:flex;width:100%">
+    <div style="flex:1"></div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+      <div class="conn-short"></div>
+    </div>
+  </div>
+
+  <!-- SAP UPDATE (right side) -->
+  <div style="display:flex;width:100%;justify-content:flex-end;padding-right:calc(25% - 110px)">
+    <div class="card" id="n-sap" onclick="showDetail('sap')">
+      <div class="card-icons" style="position:relative;width:52px;flex-shrink:0">
+        <div class="app-icon celonis" style="position:absolute;left:0;z-index:1">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="white"/><rect x="9" y="1" width="6" height="6" rx="1" fill="white" opacity=".6"/><rect x="1" y="9" width="6" height="6" rx="1" fill="white" opacity=".4"/><rect x="9" y="9" width="6" height="6" rx="1" fill="white" opacity=".2"/></svg>
+        </div>
+        <div class="app-icon sap" style="position:absolute;left:18px;z-index:2;width:34px;height:34px;border-radius:8px;font-size:9px;font-weight:900">SAP</div>
+      </div>
+      <div class="card-text" style="margin-left:10px">
+        <div class="card-label">Update SAP</div>
+        <div class="card-sub">Vendor assigned</div>
+      </div>
+      <span class="card-badge badge-auto">Auto</span>
+    </div>
+  </div>
+
+  <!-- merge connector to center end -->
+  <div style="display:flex;width:100%;align-items:flex-end">
+    <div style="flex:1;height:1px;background:#c8cad0;margin-bottom:0;align-self:flex-end"></div>
+    <div style="width:1px;height:40px;background:#c8cad0"></div>
+    <div style="flex:1"></div>
+  </div>
+
+  <!-- END -->
+  <div style="display:flex;flex-direction:column;align-items:center">
+    <div class="circle-node" style="width:28px;height:28px;background:#1a1a2e;border-color:#1a1a2e" onclick="showDetail('end')"></div>
+    <div class="node-label" style="font-size:12px;color:#6b7280;font-weight:500">Process complete</div>
+  </div>
+
+</div>
+</div>
+
+<!-- DETAIL BAR -->
+<div class="detail-bar" id="detail-bar">
+  <div class="detail-icon" id="d-icon"></div>
+  <div>
+    <div class="detail-title" id="d-title"></div>
+    <div class="detail-desc" id="d-desc"></div>
+  </div>
+  <div class="detail-close" onclick="closeDetail()">✕</div>
+</div>
+
+<script>
+var details = {
+  start:   {icon:'⚡', bg:'#374151', label:'Supplier performance alert', desc:'Triggered when supplier composite score drops below threshold (60/100) for 3 consecutive periods.'},
+  scoring: {icon:'C',  bg:'#1a1a2e', label:'Supplier scoring agent',      desc:'Calculates composite score: OTIF, quality (NC rate), SLA response, price adherence. Celonis AI Agent.'},
+  gw1:     {icon:'◇',  bg:'#6b7280', label:'Score threshold gateway',      desc:'Routes to no action if score ≥ 60. Routes to buyer notification if score < 60.'},
+  noact1:  {icon:'✓',  bg:'#059669', label:'No action – score OK',         desc:'Score within acceptable range. Supplier remains on approved vendor list. Audit log updated.'},
+  notify:  {icon:'T',  bg:'#1057a0', label:'Notify buyer in Teams',         desc:'Sends proactive card to assigned buyer in Teams. Includes scorecard and ranked alternative suppliers.'},
+  gw2:     {icon:'◇',  bg:'#6b7280', label:'Buyer decision gateway',        desc:'Buyer accepts alternatives (bidding list triggered) or declines (case closed, audit logged).'},
+  noact2:  {icon:'✕',  bg:'#6b7280', label:'No action – buyer declined',    desc:'Buyer chose to keep current supplier. Decision logged with timestamp and approver identity.'},
+  bidding: {icon:'C',  bg:'#1a1a2e', label:'Trigger bidding list',          desc:'Generates pre-populated bidding list for commodity 4520-VLV ranked by score. Exportable to Excel.'},
+  sap:     {icon:'S',  bg:'#1870c5', label:'Update SAP',                    desc:'Creates vendor change request in SAP MM, updates approved vendor list, logs full audit trail.'},
+  end:     {icon:'●',  bg:'#1a1a2e', label:'Process complete',              desc:'Orchestration complete. SAP updated. Teams confirmation sent. All changes logged.'},
+};
+
+function showDetail(id){
+  var d=details[id]; if(!d) return;
+  document.getElementById('d-icon').textContent=d.icon;
+  document.getElementById('d-icon').style.background=d.bg;
+  document.getElementById('d-title').textContent=d.label;
+  document.getElementById('d-desc').textContent=d.desc;
+  document.getElementById('detail-bar').classList.add('open');
+  document.querySelectorAll('.card').forEach(function(c){c.classList.remove('selected')});
+  var nc=document.getElementById('n-'+id);
+  if(nc) nc.classList.add('selected');
+}
+function closeDetail(){
+  document.getElementById('detail-bar').classList.remove('open');
+  document.querySelectorAll('.card').forEach(function(c){c.classList.remove('selected')});
+}
+
+var z=1;
+function doZoom(d){
+  z=Math.min(1.5,Math.max(.5,z+d));
+  document.getElementById('flow').style.transform='scale('+z+')';
+  document.getElementById('flow').style.transformOrigin='top center';
+  document.getElementById('zlbl').textContent=Math.round(z*100)+'%';
+}
+function doDeploy(){
+  var b=document.getElementById('dbtn');
+  b.textContent='✓  Deployed'; b.className='tbtn ok';
+  setTimeout(function(){b.textContent='▶  Deploy agent';b.className='tbtn primary'},2500);
+}
+</script>
+</body>
+</html>
